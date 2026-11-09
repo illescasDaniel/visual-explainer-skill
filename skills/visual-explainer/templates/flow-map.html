@@ -1,0 +1,361 @@
+<title>Sample System Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: five-column dependency map (frontend, bridge, core, adapters, outside world) beside a detail panel that lists flow steps and component facts. */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --fg: #16202b;
+  --muted: #5b6876;
+  --line: #d3dae2;
+  --accent: #1f5fd1;
+  --c-ui: #1f8a70;
+  --c-bridge: #7a56d6;
+  --c-core: #c47a12;
+  --c-adapt: #2b6cd6;
+  --c-ext: #6d7885;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151c; --surface: #17202a; --fg: #e5ebf1; --muted: #93a1b0; --line: #2a3643; --accent: #6f9bf2;
+    --c-ui: #46c3a4; --c-bridge: #a78bf5; --c-core: #e6a244; --c-adapt: #6f9bf2; --c-ext: #9aa6b3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151c; --surface: #17202a; --fg: #e5ebf1; --muted: #93a1b0; --line: #2a3643; --accent: #6f9bf2;
+  --c-ui: #46c3a4; --c-bridge: #a78bf5; --c-core: #e6a244; --c-adapt: #6f9bf2; --c-ext: #9aa6b3;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab { font: inherit; font-weight: 500; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+.tab small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.tab[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tab:focus-visible, .node:focus-visible, .step:focus-visible, .link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+@media (max-width: 1000px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.map { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+.map svg { display: block; width: 100%; min-width: 900px; height: auto; }
+.colhead { font: 500 11px var(--font-body); letter-spacing: 0.09em; text-transform: uppercase; fill: var(--muted); }
+.band { fill: var(--bg); }
+.node { cursor: pointer; }
+.node rect.box { fill: color-mix(in srgb, var(--c) 13%, var(--surface)); stroke: color-mix(in srgb, var(--c) 55%, var(--surface)); stroke-width: 1.2; }
+.node rect.tick { fill: var(--c); }
+.node text.t { font: 600 13px var(--font-body); fill: var(--fg); }
+.node text.s { font: 400 11px var(--font-body); fill: var(--muted); }
+.node:hover rect.box { stroke: var(--c); }
+.node.sel rect.box { stroke: var(--c); stroke-width: 2.4; }
+.node.dim { opacity: 0.35; }
+.edge path { fill: none; stroke: var(--muted); stroke-width: 1.3; opacity: 0.55; }
+.edge.on path { stroke: var(--accent); stroke-width: 2.4; opacity: 1; }
+.edge.dim path { opacity: 0.12; }
+.badge rect { fill: var(--accent); }
+.badge text { font: 600 11px var(--font-body); fill: #fff; }
+.edge.hidden-badge .badge { display: none; }
+.panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.card h2 { font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 1.2; margin: 0 0 4px; }
+.eyebrow { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 6px; }
+.pill { display: inline-block; font-size: 12px; font-weight: 500; padding: 1px 9px; border-radius: 99px; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 50%, var(--surface)); background: color-mix(in srgb, var(--c) 10%, var(--surface)); }
+.files { display: flex; flex-direction: column; gap: 2px; margin: 10px 0; color: var(--muted); overflow-wrap: anywhere; }
+.card p { margin: 8px 0; }
+.card ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.sub { font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 16px 0 4px; }
+.conn { list-style: none; padding: 0 !important; display: flex; flex-direction: column; gap: 4px !important; }
+.conn li { display: flex; gap: 8px; align-items: baseline; }
+.arrow { color: var(--muted); font-family: var(--font-mono); flex: none; width: 2.4em; }
+.link { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-align: left; font-weight: 500; }
+.link:hover { text-decoration: underline; }
+.how { color: var(--muted); font-size: 13px; }
+ol.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; counter-reset: s; }
+.step { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; width: 100%; text-align: left; font: inherit; color: var(--fg); background: none; border: 1px solid transparent; border-radius: 6px; padding: 7px 8px; cursor: pointer; }
+.step:hover { background: var(--bg); }
+.step[aria-current="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.step b { font: 600 12px var(--font-body); color: #fff; background: var(--accent); border-radius: 99px; width: 22px; height: 22px; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 13px; padding: 0 2px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); display: inline-block; }
+.rule { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .edge path, .node { transition: opacity .15s, stroke .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Sample system map</h1>
+    <p class="lede">EDIT: one or two sentences on what the system is. Pick a flow to follow one request through the components, or click a box to see what it owns and who it talks to.</p>
+  </header>
+
+  <div class="tabs" id="tabs" role="group" aria-label="Flow"></div>
+
+  <div class="main">
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div class="map"><svg id="svg" viewBox="0 0 1100 560" role="group" aria-label="Component diagram"></svg></div>
+      <div class="legend" id="legend"></div>
+      <p class="rule">Dependency rule: EDIT: one verified architectural rule, or delete this paragraph.</p>
+    </div>
+    <aside class="panel" aria-live="polite">
+      <div class="card" id="steps-card" hidden></div>
+      <div class="card" id="detail"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  /* EDIT: everything between here and "ENGINE" is sample data. Every claim must be verified against the real source. */
+  var LAYERS = {
+    ui: { name: "Clients", c: "var(--c-ui)" },
+    bridge: { name: "Entry points", c: "var(--c-bridge)" },
+    core: { name: "Core", c: "var(--c-core)" },
+    adapt: { name: "Adapters", c: "var(--c-adapt)" },
+    ext: { name: "Outside world", c: "var(--c-ext)" }
+  };
+  var COLS = [
+    { x: 16, w: 150, name: "Clients" },
+    { x: 206, w: 160, name: "Entry points" },
+    { x: 416, w: 190, name: "Core" },
+    { x: 656, w: 200, name: "Adapters" },
+    { x: 896, w: 190, name: "Outside world" }
+  ];
+  /* Node: col 0-4, y and h in viewBox units (viewBox is 1100 x 560; keep nodes 56 apart or more), layer key, title t, subtitle s. */
+  var NODES = [
+    { id: "web", col: 0, y: 150, h: 64, layer: "ui", t: "Web UI", s: "browser app", files: ["web/src/App.tsx"],
+      d: "Sample: the single-page app that talks to the HTTP API.", facts: ["Sample fact: state lives in the URL."] },
+    { id: "api", col: 1, y: 150, h: 64, layer: "bridge", t: "HTTP API", s: "routes, validation", files: ["server/routes.go"],
+      d: "Sample: validates requests and calls the service.", facts: ["Sample fact: rejects bodies over 1 MiB."] },
+    { id: "svc", col: 2, y: 150, h: 64, layer: "core", t: "OrderService", s: "business rules", files: ["core/orders.go"],
+      d: "Sample: the use cases. Depends only on interfaces.", facts: ["Sample fact: idempotent on a client key."] },
+    { id: "ports", col: 2, y: 300, h: 64, layer: "core", t: "ports", s: "interfaces and types", files: ["core/ports.go"],
+      d: "Sample: Repository, Cache and Publisher interfaces.", facts: [] },
+    { id: "repo", col: 3, y: 56, h: 64, layer: "adapt", t: "SQL repository", s: "implements Repository", files: ["adapters/sql.go"],
+      d: "Sample: reads and writes orders.", facts: [] },
+    { id: "cache", col: 3, y: 150, h: 64, layer: "adapt", t: "Cache client", s: "implements Cache", files: ["adapters/cache.go"],
+      d: "Sample: caches reads for 60 seconds.", facts: [] },
+    { id: "pub", col: 3, y: 244, h: 64, layer: "adapt", t: "Job publisher", s: "implements Publisher", files: ["adapters/queue.go"],
+      d: "Sample: enqueues follow-up work.", facts: [] },
+    { id: "db", col: 4, y: 56, h: 64, layer: "ext", t: "Database", s: "PostgreSQL", files: [], d: "Sample.", facts: [] },
+    { id: "redis", col: 4, y: 150, h: 64, layer: "ext", t: "Redis", s: "cache", files: [], d: "Sample.", facts: [] },
+    { id: "mq", col: 4, y: 244, h: 64, layer: "ext", t: "Message broker", s: "queue", files: [], d: "Sample.", facts: [] }
+  ];
+  /* Edge: [from, to, short label, double-headed?]. Direction is caller to callee. */
+  var EDGES = [
+    ["web", "api", "HTTPS JSON", true],
+    ["api", "svc", "PlaceOrder", false],
+    ["svc", "repo", "Save via Repository", false],
+    ["svc", "cache", "Get, Put via Cache", false],
+    ["svc", "pub", "Publish", false],
+    ["repo", "db", "SQL", false],
+    ["cache", "redis", "GET, SET", false],
+    ["pub", "mq", "enqueue", false]
+  ];
+  /* Flow: key -> { title, sub (tab caption), steps: [[edge "from>to", sentence], ...] }. An edge can appear in several steps. */
+  var FLOWS = {
+    request: { title: "Place an order", sub: "request to database", steps: [
+      ["web>api", "The browser posts the order."],
+      ["api>svc", "The API validates it and calls the service."],
+      ["svc>cache", "The service checks the cache for a duplicate."],
+      ["svc>repo", "The order is saved."],
+      ["repo>db", "The repository writes a row."],
+      ["svc>pub", "A confirmation job is published."],
+      ["pub>mq", "The job lands on the queue."]
+    ] }
+  };
+  /* ENGINE: no edits needed below unless you change the look. */
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("svg");
+  var byId = {};
+  NODES.forEach(function (n) { n.x = COLS[n.col].x; n.w = COLS[n.col].w; n.cy = n.y + n.h / 2; n.cx = n.x + n.w / 2; byId[n.id] = n; });
+  var state = { flow: "deps", sel: NODES[0].id, step: null };
+
+  function el(name, attrs, parent) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(s) { return document.createTextNode(s); }
+
+  var defs = el("defs", {}, svg);
+  var m = el("marker", { id: "arr", viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" }, defs);
+  el("path", { d: "M0 0 L10 5 L0 10 z", fill: "context-stroke" }, m);
+
+  COLS.forEach(function (c, i) {
+    if (i % 2 === 0) el("rect", { x: c.x - 8, y: 0, width: c.w + 16, height: 560, class: "band" }, svg);
+    var t = el("text", { x: c.x, y: 30, class: "colhead" }, svg);
+    t.appendChild(txt(c.name));
+  });
+
+  var edgeLayer = el("g", {}, svg);
+  var nodeLayer = el("g", {}, svg);
+  var edgeEls = {};
+
+  function geom(a, b) {
+    var p1, p2, d;
+    if (a.col !== b.col) {
+      if (a.col < b.col) { p1 = [a.x + a.w, a.cy]; p2 = [b.x, b.cy]; }
+      else { p1 = [a.x, a.cy]; p2 = [b.x + b.w, b.cy]; }
+      var dx = (p2[0] - p1[0]) / 2;
+      d = "M" + p1[0] + " " + p1[1] + " C" + (p1[0] + dx) + " " + p1[1] + " " + (p2[0] - dx) + " " + p2[1] + " " + p2[0] + " " + p2[1];
+    } else {
+      if (a.cy < b.cy) { p1 = [a.cx, a.y + a.h]; p2 = [b.cx, b.y]; }
+      else { p1 = [a.cx, a.y]; p2 = [b.cx, b.y + b.h]; }
+      d = "M" + p1[0] + " " + p1[1] + " L" + p2[0] + " " + p2[1];
+    }
+    return { d: d, mx: (p1[0] + p2[0]) / 2, my: (p1[1] + p2[1]) / 2 };
+  }
+
+  EDGES.forEach(function (e) {
+    var a = byId[e[0]], b = byId[e[1]], g = geom(a, b);
+    var key = e[0] + ">" + e[1];
+    var grp = el("g", { class: "edge" }, edgeLayer);
+    var attrs = { d: g.d, "marker-end": "url(#arr)" };
+    if (e[3]) attrs["marker-start"] = "url(#arr)";
+    el("path", attrs, grp);
+    var badge = el("g", { class: "badge" }, grp);
+    var r = el("rect", { height: 20, rx: 10, y: g.my - 10 }, badge);
+    var t = el("text", { y: g.my + 4, "text-anchor": "middle" }, badge);
+    edgeEls[key] = { g: grp, rect: r, text: t, mx: g.mx, my: g.my, from: e[0], to: e[1], label: e[2] };
+  });
+
+  NODES.forEach(function (n) {
+    var g = el("g", { class: "node", tabindex: "0", role: "button", "data-id": n.id, "aria-label": n.t + ", " + n.s, style: "--c:" + LAYERS[n.layer].c }, nodeLayer);
+    el("rect", { class: "box", x: n.x, y: n.y, width: n.w, height: n.h, rx: 6 }, g);
+    el("rect", { class: "tick", x: n.x, y: n.y + 8, width: 3, height: n.h - 16 }, g);
+    var t = el("text", { class: "t", x: n.x + 12, y: n.cy - (n.h > 70 ? 0 : 2) }, g); t.appendChild(txt(n.t));
+    var s = el("text", { class: "s", x: n.x + 12, y: n.cy + 15 }, g); s.appendChild(txt(n.s));
+    g.addEventListener("click", function () { select(n.id); });
+    g.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(n.id); } });
+    n.g = g;
+  });
+
+  function stepsFor(flow) { return FLOWS[flow] ? FLOWS[flow].steps : []; }
+
+  function render() {
+    var steps = stepsFor(state.flow);
+    var stepNums = {};
+    steps.forEach(function (s, i) { (stepNums[s[0]] = stepNums[s[0]] || []).push(i + 1); });
+    var activeEdge = state.step !== null ? steps[state.step][0] : null;
+    var touched = {};
+    Object.keys(edgeEls).forEach(function (k) {
+      var e = edgeEls[k], cls = "edge";
+      if (state.flow === "deps") {
+        if (e.from === state.sel || e.to === state.sel) { cls += " on"; touched[e.from] = touched[e.to] = true; }
+        cls += " hidden-badge";
+      } else if (stepNums[k]) {
+        cls += activeEdge ? (k === activeEdge ? " on" : "") : " on";
+        if (activeEdge && k !== activeEdge) cls += " dim";
+        touched[e.from] = touched[e.to] = true;
+        var label = stepNums[k].join(" · ");
+        e.text.textContent = label;
+        var w = 14 + label.length * 6.5;
+        e.rect.setAttribute("width", w); e.rect.setAttribute("x", e.mx - w / 2);
+        e.text.setAttribute("x", e.mx);
+      } else {
+        cls += " dim hidden-badge";
+      }
+      e.g.setAttribute("class", cls);
+    });
+    NODES.forEach(function (n) {
+      var cls = "node";
+      if (n.id === state.sel) cls += " sel";
+      if (state.flow !== "deps" && !touched[n.id] && n.id !== state.sel) cls += " dim";
+      n.g.setAttribute("class", cls);
+    });
+    document.querySelectorAll(".tab").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.flow === state.flow)); });
+    renderSteps(steps);
+    renderDetail();
+  }
+
+  function renderSteps(steps) {
+    var card = document.getElementById("steps-card");
+    if (state.flow === "deps") { card.hidden = true; return; }
+    card.hidden = false;
+    card.textContent = "";
+    var p = document.createElement("p"); p.className = "eyebrow"; p.textContent = "Flow"; card.appendChild(p);
+    var h = document.createElement("h2"); h.textContent = FLOWS[state.flow].title; card.appendChild(h);
+    var ol = document.createElement("ol"); ol.className = "steps"; ol.style.marginTop = "12px";
+    steps.forEach(function (s, i) {
+      var li = document.createElement("li");
+      var b = document.createElement("button"); b.className = "step"; b.type = "button";
+      if (state.step === i) b.setAttribute("aria-current", "true");
+      var n = document.createElement("b"); n.textContent = String(i + 1);
+      var span = document.createElement("span"); span.textContent = s[1];
+      b.appendChild(n); b.appendChild(span);
+      b.addEventListener("click", function () {
+        state.step = state.step === i ? null : i;
+        if (state.step !== null) { var ed = edgeEls[s[0]]; state.sel = ed.to === state.sel ? ed.from : ed.to; if (state.sel === undefined) state.sel = ed.to; }
+        render();
+      });
+      li.appendChild(b); ol.appendChild(li);
+    });
+    card.appendChild(ol);
+  }
+
+  function renderDetail() {
+    var n = byId[state.sel], box = document.getElementById("detail");
+    box.textContent = "";
+    box.style.setProperty("--c", LAYERS[n.layer].c);
+    function add(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; box.appendChild(e); return e; }
+    add("p", "eyebrow", "Component");
+    add("h2", "", n.t);
+    var pl = add("span", "pill", LAYERS[n.layer].name);
+    var files = add("div", "files");
+    n.files.forEach(function (f) { var c = document.createElement("code"); c.textContent = f; files.appendChild(c); });
+    add("p", "", n.d);
+    if (n.facts.length) {
+      add("div", "sub", "Good to know");
+      var ul = add("ul"); n.facts.forEach(function (f) { var li = document.createElement("li"); li.textContent = f; ul.appendChild(li); });
+    }
+    var out = [], inn = [];
+    Object.keys(edgeEls).forEach(function (k) {
+      var e = edgeEls[k];
+      if (e.from === n.id) out.push(e); else if (e.to === n.id) inn.push(e);
+    });
+    function list(title, arr, sym, other) {
+      if (!arr.length) return;
+      add("div", "sub", title);
+      var ul = add("ul", "conn");
+      arr.forEach(function (e) {
+        var li = document.createElement("li");
+        var a = document.createElement("span"); a.className = "arrow"; a.textContent = sym;
+        var b = document.createElement("button"); b.type = "button"; b.className = "link"; b.textContent = byId[e[other]].t;
+        b.addEventListener("click", function () { select(e[other]); });
+        var how = document.createElement("span"); how.className = "how"; how.textContent = e.label;
+        li.appendChild(a); li.appendChild(b); li.appendChild(how); ul.appendChild(li);
+      });
+    }
+    list("Calls or uses", out, "→", "to");
+    list("Used by", inn, "←", "from");
+  }
+
+  function select(id) { state.sel = id; state.step = null; render(); }
+
+  var tabs = document.getElementById("tabs");
+  [["deps", "All connections", "how the parts depend on each other"]].concat(Object.keys(FLOWS).map(function (k) { return [k, FLOWS[k].title, FLOWS[k].sub]; })).forEach(function (t) {
+    var b = document.createElement("button"); b.className = "tab"; b.type = "button"; b.dataset.flow = t[0]; b.id = "tab-" + t[0];
+    b.appendChild(txt(t[1])); var sm = document.createElement("small"); sm.textContent = t[2]; b.appendChild(sm);
+    b.addEventListener("click", function () { state.flow = t[0]; state.step = null; render(); });
+    tabs.appendChild(b);
+  });
+
+  var lg = document.getElementById("legend");
+  Object.keys(LAYERS).forEach(function (k) {
+    var s = document.createElement("span"); s.style.setProperty("--c", LAYERS[k].c);
+    var i = document.createElement("i"); s.appendChild(i); s.appendChild(txt(LAYERS[k].name)); lg.appendChild(s);
+  });
+  var hint = document.createElement("span"); hint.textContent = "Arrows point from caller to callee; double arrows carry calls one way and events back."; lg.appendChild(hint);
+
+  render();
+})();
+</script>
